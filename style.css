@@ -1,0 +1,274 @@
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', sans-serif;
+    background-color: #f8f8f8;
+    overflow: hidden;
+}
+
+.page {
+    display: none;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.page.active {
+    display: block;
+}
+
+/* 欢迎页样式 */
+#welcome-page {
+    background: url('image/welcome_background.jpeg') no-repeat center center/cover;
+}
+
+.welcome-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.start-button {
+    background: linear-gradient(to bottom, #4CAF50, #8BC34A);
+    color: #FFFFFF;
+    font-size: 24px;
+    padding: 20px 40px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.start-button:hover {
+    transform: scale(1.05);
+}
+
+/* 游戏页样式 */
+#game-page {
+    background: url('image/game_background.jpeg') no-repeat center center/cover;
+}
+
+.game-header {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px 20px;
+    border-radius: 20px;
+    display: flex;
+    gap: 30px;
+    font-size: 18px;
+    color: #4CAF50;
+}
+
+.game-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.game-grid {
+    display: grid;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.fruit {
+    width: 50px;
+    height: 50px;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.fruit.selected {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 165, 0, 0.8);
+}
+
+.game-controls {
+    display: flex;
+    gap: 20px;
+}
+
+.control-button {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.2s ease;
+}
+
+.control-button:hover {
+    background: rgba(255, 255, 255, 1);
+}
+
+/* 结算弹窗样式 */
+#result-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #4CAF50, #8BC34A);
+    padding: 50px;
+    border-radius: 30px;
+    text-align: center;
+    color: white;
+}
+
+.result-title {
+    font-size: 36px;
+    margin-bottom: 20px;
+}
+
+.final-score {
+    font-size: 120px;
+    background: linear-gradient(to right, #4CAF50, #8BC34A);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 20px 0;
+}
+
+.replay-button {
+    background: white;
+    color: #4CAF50;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 20px;
+    transition: transform 0.2s ease;
+}
+
+.replay-button:hover {
+    transform: scale(1.05);
+}
+
+/* 动画效果 */
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.fruit.hint {
+    animation: blink 0.5s ease-in-out infinite;
+}
+
+/* 连线样式 */
+.connection-line {
+    position: absolute;
+    height: 4px;
+    background: linear-gradient(to right, #FFA500, #FF69B4);
+    transform-origin: left center;
+    z-index: 10;
+    border-radius: 2px;
+    animation: flow 1s linear infinite;
+}
+
+.connection-line::before,
+.connection-line::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: inherit;
+    border-radius: 50%;
+}
+
+.connection-line::before {
+    left: -5px;
+    top: -3px;
+}
+
+.connection-line::after {
+    right: -5px;
+    top: -3px;
+}
+
+@keyframes flow {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+    .game-header {
+        font-size: 16px;
+        padding: 8px 16px;
+    }
+
+    .fruit {
+        width: 40px;
+        height: 40px;
+    }
+
+    .control-button {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+
+    .modal-content {
+        padding: 30px;
+    }
+
+    .result-title {
+        font-size: 28px;
+    }
+
+    .final-score {
+        font-size: 80px;
+    }
+}
