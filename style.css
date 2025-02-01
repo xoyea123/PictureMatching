@@ -153,10 +153,7 @@ body {
 
 .final-score {
     font-size: 120px;
-    background: linear-gradient(to right, #4CAF50, #8BC34A);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin: 20px 0;
+    color: rgb(18, 135, 49); /* 修改分数字体颜色为蓝色 */
 }
 
 .replay-button {

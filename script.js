@@ -29,7 +29,7 @@ class Game {
         this.resetTimes = 0;
         this.level = 1;
         this.fruitTypes = GAME_CONFIG.INITIAL_FRUIT_TYPES;
-        this.gridSize = GAME_CONFIG.GRID_SIZE;
+        this.gridSize = this.calculateGridSize(this.level); // 根据当前关卡设置网格大小
         this.imageCache = {};
         this.audioCache = {};
         this.timers = [];
@@ -54,7 +54,7 @@ class Game {
             this.imageCache[fruit] = img;
         });
 
-        const sounds = ['bgm', 'click', 'match', 'hint', 'end'];
+        const sounds = ['bgm', 'click', 'match', 'hint', 'end', 'congratulation']; // 添加 congratulation 音效
         sounds.forEach(sound => {
             const audio = new Audio(`music/${sound}.mp3`);
             this.audioCache[sound] = audio;
@@ -69,11 +69,12 @@ class Game {
         grid.style.gridTemplateRows = `repeat(${this.gridSize}, ${GAME_CONFIG.ITEM_SIZE}px)`;
 
         const fruits = this.generateFruitPairs();
-        fruits.forEach(fruit => {
+        fruits.forEach((fruit, index) => {
             const fruitElement = document.createElement('div');
             fruitElement.classList.add('fruit');
             fruitElement.style.backgroundImage = `url(${this.imageCache[fruit].src})`;
             fruitElement.dataset.type = fruit;
+            fruitElement.dataset.index = index; // 添加索引以便固定位置
             grid.appendChild(fruitElement);
         });
     }
@@ -143,18 +144,29 @@ class Game {
         const [fruit1, fruit2] = this.selectedFruits;
         
         if (fruit1.dataset.type === fruit2.dataset.type && this.isValidPath(fruit1, fruit2)) {
-            this.handleMatch(fruit1, fruit2);
+            // 计算两个水果之间的距离
+            const rect1 = fruit1.getBoundingClientRect();
+            const rect2 = fruit2.getBoundingClientRect();
+            const distance = Math.sqrt((rect2.left - rect1.left) ** 2 + (rect2.top - rect1.top) ** 2);
+            
+            // 根据距离计算得分，距离越远得分越高
+            const baseScore = GAME_CONFIG.SCORE_PER_PAIR;
+            const maxDistance = Math.sqrt((this.gridSize * GAME_CONFIG.ITEM_SIZE) ** 2 + (this.gridSize * GAME_CONFIG.ITEM_SIZE) ** 2);
+            const scoreMultiplier = 1 + (distance / maxDistance);
+            const score = Math.round(baseScore * scoreMultiplier);
+            
+            this.handleMatch(fruit1, fruit2, score);
         } else {
             this.clearSelection();
         }
     }
 
     // 处理匹配成功
-    handleMatch(fruit1, fruit2) {
+    handleMatch(fruit1, fruit2, score) {
         this.playSound('match');
         this.drawConnectionLine(fruit1, fruit2);
         setTimeout(() => {
-            this.updateScore(GAME_CONFIG.SCORE_PER_PAIR);
+            this.updateScore(score);
             this.removeFruits(fruit1, fruit2);
             this.clearSelection();
             this.checkGameOver();
@@ -287,6 +299,12 @@ class Game {
     checkGameOver() {
         if (this.timeLeft <= 0) {
             this.endGame();
+        } else {
+            // 检查是否所有水果都被消除
+            const fruits = document.querySelectorAll('.fruit:not(.empty)');
+            if (fruits.length === 0) {
+                this.endGame();
+            }
         }
     }
 
@@ -294,14 +312,50 @@ class Game {
     endGame() {
         this.isGameRunning = false;
         this.timers.forEach(timer => clearInterval(timer));
-        this.playSound('end');
-        this.showResultModal();
+        if (this.timeLeft <= 0) {
+            this.playSound('end'); // 时间结束，播放游戏结束音效
+        } else {
+            this.playSound('congratulation'); // 时间未结束且所有水果消除，播放通关音效
+        }
+        this.showResultModal(this.timeLeft <= 0); // 传递时间是否结束的标志
     }
 
     // 显示结算弹窗
-    showResultModal() {
+    showResultModal(isTimeUp) {
         document.getElementById('result-modal').style.display = 'block';
         document.querySelector('.final-score').textContent = this.currentScore;
+
+        // 清空 modal-content 的内容
+        document.querySelector('.modal-content').innerHTML = `
+            <h2 class="result-title">游戏结束</h2>
+            <div class="final-score">分数: <span id="final-score">${this.currentScore}</span></div>
+        `;
+
+        if (isTimeUp) {
+            // 如果时间结束，显示“重新开始”按钮
+            const restartButton = document.createElement('button');
+            restartButton.id = 'restart-button';
+            restartButton.className = 'control-button';
+            restartButton.textContent = '重新开始';
+            restartButton.addEventListener('click', () => this.restartGame());
+            document.querySelector('.modal-content').appendChild(restartButton);
+        } else {
+            // 如果水果消除完毕，显示“下一关”按钮
+            const nextLevelButton = document.createElement('button');
+            nextLevelButton.id = 'next-level-button';
+            nextLevelButton.className = 'control-button';
+            nextLevelButton.textContent = '下一关';
+            nextLevelButton.addEventListener('click', () => this.nextLevel());
+            document.querySelector('.modal-content').appendChild(nextLevelButton);
+        }
+
+        // 添加“退出”按钮
+        const exitButton = document.createElement('button');
+        exitButton.id = 'exit-button';
+        exitButton.className = 'control-button';
+        exitButton.textContent = '退出';
+        exitButton.addEventListener('click', () => this.exitGame());
+        document.querySelector('.modal-content').appendChild(exitButton);
     }
 
     // 重新开始游戏
@@ -309,6 +363,24 @@ class Game {
         document.getElementById('result-modal').style.display = 'none';
         this.init();
         this.startGame();
+    }
+
+    // 进入下一关
+    nextLevel() {
+        document.getElementById('result-modal').style.display = 'none';
+        this.levelUp(); // 增加难度
+        this.generateGrid(); // 重新生成网格
+        this.updateUI(); // 更新UI
+        this.timeLeft = GAME_CONFIG.GAME_DURATION; // 重置时间
+        this.startGame(); // 重新开始游戏
+        this.startTimer(); // 重新启动计时器
+    }
+
+    // 退出游戏
+    exitGame() {
+        document.getElementById('result-modal').style.display = 'none';
+        document.getElementById('game-page').classList.remove('active');
+        document.getElementById('welcome-page').classList.add('active');
     }
 
     // 更新UI
@@ -347,14 +419,101 @@ class Game {
 
     // 移除水果
     removeFruits(fruit1, fruit2) {
-        fruit1.remove();
-        fruit2.remove();
+        fruit1.style.backgroundImage = ''; // 留白
+        fruit2.style.backgroundImage = ''; // 留白
+        fruit1.classList.add('empty'); // 添加空类以便后续处理
+        fruit2.classList.add('empty'); // 添加空类以便后续处理
     }
 
     // 检查路径是否有效
     isValidPath(fruit1, fruit2) {
-        // 实现路径检查逻辑
-        return true;
+        if (this.level <= 2) {
+            // 前两关直接返回true，因为水果位置固定，不需要检查路径
+            return true;
+        }
+        const rect1 = fruit1.getBoundingClientRect();
+        const rect2 = fruit2.getBoundingClientRect();
+        
+        const x1 = rect1.left + rect1.width / 2;
+        const y1 = rect1.top + rect1.height / 2;
+        const x2 = rect2.left + rect2.width / 2;
+        const y2 = rect2.top + rect2.height / 2;
+        
+        // 检查是否在同一行或同一列
+        if (x1 === x2 || y1 === y2) {
+            return true;
+        }
+        
+        // 检查是否有不超过两个拐角的路径
+        const corners = [];
+        
+        // 检查水平-垂直路径
+        if (this.isClearPath(x1, y1, x2, y1)) {
+            corners.push({ x: x2, y: y1 });
+        }
+        
+        // 检查垂直-水平路径
+        if (this.isClearPath(x1, y1, x1, y2)) {
+            corners.push({ x: x1, y: y2 });
+        }
+        
+        // 检查是否有不超过两个拐角的路径
+        for (const corner of corners) {
+            if (this.isClearPath(corner.x, corner.y, x2, y2)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    isClearPath(x1, y1, x2, y2) {
+        const grid = document.querySelector('.game-grid');
+        const gridRect = grid.getBoundingClientRect();
+        const gridSize = this.gridSize;
+        const itemSize = GAME_CONFIG.ITEM_SIZE;
+        
+        const startX = Math.floor((x1 - gridRect.left) / itemSize);
+        const startY = Math.floor((y1 - gridRect.top) / itemSize);
+        const endX = Math.floor((x2 - gridRect.left) / itemSize);
+        const endY = Math.floor((y2 - gridRect.top) / itemSize);
+        
+        if (startX === endX && startY === endY) {
+            return true;
+        }
+        
+        if (startX === endX) {
+            const step = startY < endY ? 1 : -1;
+            for (let y = startY + step; y !== endY; y += step) {
+                if (this.isOccupied(startX, y)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        if (startY === endY) {
+            const step = startX < endX ? 1 : -1;
+            for (let x = startX + step; x !== endX; x += step) {
+                if (this.isOccupied(x, startY)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        return false;
+    }
+
+    isOccupied(x, y) {
+        const grid = document.querySelector('.game-grid');
+        const fruitElement = grid.querySelector(`.fruit:nth-child(${y * this.gridSize + x + 1})`);
+        return fruitElement && fruitElement.style.backgroundImage !== '';
+    }
+
+    // 计算网格大小
+    calculateGridSize(level) {
+        return 2 * level + 2; // 第一关4×4，第二关6×6，第三关8×8...
     }
 }
 
